@@ -367,6 +367,9 @@ featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
 #Combine feature sets
 allData = combine_features_labels(featureSets,labels)
 
+#Tidy
+labels = rangeTechs = volaTechs = rsiTechs = volaTechs = None
+
 ##Todo - double check NaN dropping function. Does it drop on lowest hierachy?
 trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
 dataStart = trim.dataStart
