@@ -258,6 +258,60 @@ class train_test_split:
         self.y_test = testData[labelCol]
         self.X_test = testData.drop(labelCol, 1)   
 
+def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, dataOffset):
+    """This function steps through the pipleline. It's only real use is
+    encapsulation when manipulating big chunks of data. """
+    #Load data
+    price_data = get_price_data(dataFile)
+    
+    #Generate features and labels
+    labels = label_stock_returns(price_data, retDays, top, indSum,labeling, dataOffset)
+    rangeTechs = range_technicals(price_data, lookbackTenors, indSum, dataOffset)
+    volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, dataOffset)
+    macdTechs = macd_Indicators(price_data,lookbackTenors,smooth, indSum, dataOffset)
+    rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth, dataOffset)
+    
+    #Choose features
+    featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
+    
+    #Combine feature sets
+    allData = combine_features_labels(featureSets,labels)
+    
+    #Trim data we know is useless
+    trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
+    dataStart = trim.dataStart
+    dataEnd = trim.dataEnd
+    allData = trim.data
+    
+    #Train/test split date
+    splitDate = get_split_Date(testFraction, dataSet = allData)
+
+    #Stack individual sock features into example rows in X matrix
+    allData = stack_features(allData)
+
+    #drop rows with NaNs: at this stage only individual stocks affected
+    allData = clean_NaNs(allData)
+
+    #Feature Scaling
+    allData = scale_features(allData,1)
+
+    #feature deocomposition. Method 1 = PCA, 2 ICA, 0 None
+    allData = feature_decomposition(allData, decomp_method = 0, components = 10, labelsFlag =1)
+
+    #Check integrity of label data
+    check_labels(allData,'Ylabel') #double check label data
+
+    #Split data into train and test samples
+    #TODO rationalise - is tt class necessary? (use tuples in function?)
+    ## output allData dat index for walkforward function
+    tt = train_test_split(allData, dataStart, dataEnd, splitDate, 'Ylabel')
+    X_train = tt.X_train
+    y_train = tt.y_train
+    X_test = tt.X_test
+    y_test = tt.y_test
+    
+    return (X_train, y_train, X_test, y_test)
+
 #################################################
 #Machine Learning
 #################################################
@@ -341,59 +395,6 @@ def walk_forward(allData, bd, trainWindow, testWindow, clf):
         train_predict(clf, X_train_Sample, y_train_Sample, X_test_Sample, y_test_Sample)
     return 
 
-def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, dataOffset):
-    """This function steps through the pipleline. It's only real use is
-    encapsulation when manipulating big chunks of data. """
-    #Load data
-    price_data = get_price_data(dataFile)
-    
-    #Generate features and labels
-    labels = label_stock_returns(price_data, retDays, top, indSum,labeling, dataOffset)
-    rangeTechs = range_technicals(price_data, lookbackTenors, indSum, dataOffset)
-    volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, dataOffset)
-    macdTechs = macd_Indicators(price_data,lookbackTenors,smooth, indSum, dataOffset)
-    rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth, dataOffset)
-    
-    #Choose features
-    featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
-    
-    #Combine feature sets
-    allData = combine_features_labels(featureSets,labels)
-    
-    #Trim data we know is useless
-    trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
-    dataStart = trim.dataStart
-    dataEnd = trim.dataEnd
-    allData = trim.data
-    
-    #Train/test split date
-    splitDate = get_split_Date(testFraction, dataSet = allData)
-
-    #Stack individual sock features into example rows in X matrix
-    allData = stack_features(allData)
-
-    #drop rows with NaNs: at this stage only individual stocks affected
-    allData = clean_NaNs(allData)
-
-    #Feature Scaling
-    allData = scale_features(allData,1)
-
-    #feature deocomposition. Method 1 = PCA, 2 ICA, 0 None
-    allData = feature_decomposition(allData, decomp_method = 0, components = 10, labelsFlag =1)
-
-    #Check integrity of label data
-    check_labels(allData,'Ylabel') #double check label data
-
-    #Split data into train and test samples
-    #TODO rationalise - is tt class necessary? (use tuples in function?)
-    ## output allData dat index for walkforward function
-    tt = train_test_split(allData, dataStart, dataEnd, splitDate, 'Ylabel')
-    X_train = tt.X_train
-    y_train = tt.y_train
-    X_test = tt.X_test
-    y_test = tt.y_test
-    
-    return (X_train, y_train, X_test, y_test)
 
 ##############################################
 # Pipeline Control
