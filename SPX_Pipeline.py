@@ -341,65 +341,94 @@ def walk_forward(allData, bd, trainWindow, testWindow, clf):
         train_predict(clf, X_train_Sample, y_train_Sample, X_test_Sample, y_test_Sample)
     return 
 
+def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, dataOffset):
+    """This function steps through the pipleline. It's only real use is
+    encapsulation when manipulating big chunks of data. """
+    #Load data
+    price_data = get_price_data(dataFile)
+    
+    #Generate features and labels
+    labels = label_stock_returns(price_data, retDays, top, indSum,labeling, dataOffset)
+    rangeTechs = range_technicals(price_data, lookbackTenors, indSum, dataOffset)
+    volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, dataOffset)
+    macdTechs = macd_Indicators(price_data,lookbackTenors,smooth, indSum, dataOffset)
+    rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth, dataOffset)
+    
+    #Choose features
+    featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
+    
+    #Combine feature sets
+    allData = combine_features_labels(featureSets,labels)
+    
+    #Trim data we know is useless
+    trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
+    dataStart = trim.dataStart
+    dataEnd = trim.dataEnd
+    allData = trim.data
+    
+    #Train/test split date
+    splitDate = get_split_Date(testFraction, dataSet = allData)
+
+    #Stack individual sock features into example rows in X matrix
+    allData = stack_features(allData)
+
+    #drop rows with NaNs: at this stage only individual stocks affected
+    allData = clean_NaNs(allData)
+
+    #Feature Scaling
+    allData = scale_features(allData,1)
+
+    #feature deocomposition. Method 1 = PCA, 2 ICA, 0 None
+    allData = feature_decomposition(allData, decomp_method = 0, components = 10, labelsFlag =1)
+
+    #Check integrity of label data
+    check_labels(allData,'Ylabel') #double check label data
+
+    #Split data into train and test samples
+    #TODO rationalise - is tt class necessary? (use tuples in function?)
+    ## output allData dat index for walkforward function
+    tt = train_test_split(allData, dataStart, dataEnd, splitDate, 'Ylabel')
+    X_train = tt.X_train
+    y_train = tt.y_train
+    X_test = tt.X_test
+    y_test = tt.y_test
+    
+    return (X_train, y_train, X_test, y_test)
+
 ##############################################
 # Pipeline Control
 ##############################################
 
-# Input technical analysis feature vairable
-retDays = 22
-lookbackTenors = [5,12,23,67,135,265]
-volaDays = 100
-top = 0.5
+#Raw data inputs
+dataFile = "SPX.xlsx" #Filename - should be in same Dir as this .py 
+labeling = 'binary' #Labeling. Use 'q' outer percentile ranges (top 25%, middle 50%, bottom 25%)
+dataOffset = 1 #Offset from leftmost column to start reading single stock data (usally 0)
 
-#Get raw price data
-#price_data = get_price_data("SPX.xlsx") #Alt: SPX_debug.xlsx SPX_debug_full_length.xlsx SPX_light.xlsx
+#Alt Files: SPX_debug.xlsx SPX_debug_full_length.xlsx SPX_light.xlsx
 
-def generate_allData():
-    """Generate features and labels. Offset should generally be
-    generally set to 0"""
-    labels = label_stock_returns(price_data, retDays, top, True,'binary',1)
-    rangeTechs = range_technicals(price_data, lookbackTenors, True, 1)
-    volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, 1)
-    macdTechs = macd_Indicators(price_data,lookbackTenors, 9, True, 1)
-    rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth = 3, offset = 1)
-    #Choose features
-    featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
-    #Combine feature sets
-    allData = combine_features_labels(featureSets,labels)
-    return allData
+#Calssification structure
+retDays = 22 #'lookforward' tenor for stock performance classifiaction returns
+top = 0.5 #Classification boundary (Binary separator or Outer percentile for multi class)
 
-allData = generate_allData()
+# Input technical analysis feature varaibles
+lookbackTenors = [5,12,23,67,135,265] #tenors for indicators
+volaDays = 100 #Sample period for volatility metric
+indSum = 1 #Include time weighted sum of momentum indicators
+smooth = 5 #Indicator output signal smoothing where applicable
+testFraction = 0.3 #Fraction of dataset to use in test set
 
-##Todo - double check NaN dropping function. Does it drop on lowest hierachy?
-trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
-dataStart = trim.dataStart
-dataEnd = trim.dataEnd
-allData = trim.data
+#decompostion methods
+decomp_method = 0 #0=none, 1=PCA, 2=ICA
+components = 10 #Number of features after feature reduction
+labelsFlag =1 #For this pipleline always 1, but could set 0 if reusing code
 
-#Train/test split date
-splitDate = get_split_Date(testFraction = 0.3, dataSet = allData)
+#Get processed and formatted data
+allData = generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, dataOffset)
 
-#Stack individual sock features into example rows in X matrix
-allData = stack_features(allData)
-
-#drop rows with NaNs: at this stage only individual stocks affected
-allData = clean_NaNs(allData)
-
-#Feature Scaling
-allData = scale_features(allData,1)
-
-#feature deocomposition. Method 1 = PCA, 2 ICA, 0 None
-allData = feature_decomposition(allData, decomp_method = 1, components = 5, labelsFlag =1)
-
-#Check integrity of label data
-check_labels(allData,'Ylabel') #double check label data
-
-#Split data into train and test samples
-tt = train_test_split(allData, dataStart, dataEnd, splitDate, 'Ylabel')
-y_train = tt.y_train
-X_train = tt.X_train
-y_test = tt.y_test
-X_test = tt.X_test
+X_train = allData[0]
+y_train = allData[1]
+X_test = allData[2]
+y_test = allData[3]
 
 ##########################################
 #single train and test on entire data set
