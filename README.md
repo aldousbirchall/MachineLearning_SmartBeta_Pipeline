@@ -9,5 +9,5 @@ As far as stock picking / and *good* feature genration goes, nothing here is opt
 
 There is a TA-lib dependency in some of the technical analysis features: I suggest going here http://mrjbq7.github.io/ta-lib/func.html
 
-Finally, I used a bloomberg download for my dataset, but it's just adjusted closing price with dates in left most column and stock ticker above each price column. I pulled this out of excel, so if you are say pulling directly from am api, be aware that I convert the dataframe indices into timestamps. Once you have the data in that format is should run smoothly.
+Finally, I used a bloomberg download for my dataset, but it's just adjusted closing price with dates in left most column and stock ticker above each price column. I pulled this out of excel, so if you are say pulling directly from an api, be aware that the dataframe indices should be pandas timestamps. Once you have the data in that format is should run smoothly.
 
