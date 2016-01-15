@@ -225,7 +225,7 @@ def feature_decomposition(allData, decomp_method, components, labelsFlag):
         decomp = FastICA(components)
     else:
         print "No decompostion performed"
-        return
+        return allData
     decomp.fit(allData.iloc[:,:-labelsFlag])
     #print decomp.components_
     #print decomp.explained_variance_ratio_
