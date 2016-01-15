@@ -349,26 +349,26 @@ def walk_forward(allData, bd, trainWindow, testWindow, clf):
 retDays = 22
 lookbackTenors = [5,12,23,67,135,265]
 volaDays = 100
+top = 0.5
 
 #Get raw price data
-price_data = get_price_data("SPX_debug_full_length.xlsx") #Alt: SPX_debug.xlsx SPX_debug_full_length.xlsx SPX_light.xlsx
+#price_data = get_price_data("SPX.xlsx") #Alt: SPX_debug.xlsx SPX_debug_full_length.xlsx SPX_light.xlsx
 
-#Generate features and labels
-#Offset should generally be generally set to 0, but my dataset has SPX index in first row which should not be used
-labels = label_stock_returns(price_data, retDays, 0.5, True,'binary',1)
-rangeTechs = range_technicals(price_data, lookbackTenors, True, 1)
-volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, 1)
-macdTechs = macd_Indicators(price_data,lookbackTenors, 9, True, 1)
-rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth = 3, offset = 1)
+def generate_allData():
+    """Generate features and labels. Offset should generally be
+    generally set to 0"""
+    labels = label_stock_returns(price_data, retDays, top, True,'binary',1)
+    rangeTechs = range_technicals(price_data, lookbackTenors, True, 1)
+    volaTechs = vola_Techs(price_data, volaDays, lookbackTenors, 1)
+    macdTechs = macd_Indicators(price_data,lookbackTenors, 9, True, 1)
+    rsiTechs = rsi_indicators(price_data,lookbackTenors, smooth = 3, offset = 1)
+    #Choose features
+    featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
+    #Combine feature sets
+    allData = combine_features_labels(featureSets,labels)
+    return allData
 
-#Choose features
-featureSets = [macdTechs,rangeTechs,rsiTechs,volaTechs]
-
-#Combine feature sets
-allData = combine_features_labels(featureSets,labels)
-
-#Tidy
-labels = rangeTechs = volaTechs = rsiTechs = volaTechs = None
+allData = generate_allData()
 
 ##Todo - double check NaN dropping function. Does it drop on lowest hierachy?
 trim = trim_data(price_data, allData, lookbackTenors, retDays, volaDays)   
