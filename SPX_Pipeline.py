@@ -259,8 +259,8 @@ class train_test_split:
         self.X_test = testData.drop(labelCol, 1)   
 
 def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, dataOffset):
-    """This function steps through the pipleline. It's only real use is
-    encapsulation when manipulating big chunks of data. """
+    """This function steps through the pipleline. It's only real use is encapsulation when manipulation
+    big chunks of data. """
     #Load data
     price_data = get_price_data(dataFile)
     
@@ -284,7 +284,7 @@ def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, da
     allData = trim.data
     
     #Train/test split date
-    splitDate = get_split_Date(testFraction, dataSet = allData)
+    splitDate = get_split_Date(testFraction, allData)
 
     #Stack individual sock features into example rows in X matrix
     allData = stack_features(allData)
@@ -296,7 +296,7 @@ def generate_data(dataFile, retDays, lookbackTenors, volaDays, top, labeling, da
     allData = scale_features(allData,1)
 
     #feature deocomposition. Method 1 = PCA, 2 ICA, 0 None
-    allData = feature_decomposition(allData, decomp_method = 0, components = 10, labelsFlag =1)
+    allData = feature_decomposition(allData, decomp_method, components, labelsFlag)
 
     #Check integrity of label data
     check_labels(allData,'Ylabel') #double check label data
