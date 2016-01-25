@@ -1,5 +1,7 @@
-# MachineLearning_StockPicker_Pipeline
-ML pipeline with feature generation for predicting outperforming stocks in index. Ideally used as part of a smart beta stratgey. Basicall this effectively and consistently caputres the momentum factor for medium to long term horizons using only price data.
+# MachineLearning_SmartBeta_Pipeline
+ML pipeline with feature generation for predicting outperforming stocks in index. Ideally used as part of a smart beta stratgey. Basically this effectively and consistently caputres the momentum factor for medium to long term horizons using only price data.
+
+This is a proof of concept, so there is room for significant improvement, but this provides a good, working model using SKLearn on which to build. I will update from time to time.
 
 Once fully tuned and automated, this could be used as a module in a full trading system that incorporates multiple factors (think Fama French) as well as fundamental data, sentiment data, volume, analyst revisions etc etc.
 
